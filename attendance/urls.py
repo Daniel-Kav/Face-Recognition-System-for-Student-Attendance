@@ -1,8 +1,8 @@
-# attendance/urls.py
-
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('upload/', views.capture_and_recognize, name='upload_image'),
+    path('capture/<str:student_id>/', views.capture_image, name='capture_image'),
+    path('train/', views.train_model, name='train_model'),
+    path('mark/', views.mark_attendance, name='mark_attendance'),
 ]
