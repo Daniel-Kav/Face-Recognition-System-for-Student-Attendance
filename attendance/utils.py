@@ -62,3 +62,37 @@ def train_face_recognizer(data_dir='students'):
 
     return label_map
 
+from .models import Student, Attendance
+from datetime import datetime
+
+def recognize_faces_and_mark_attendance(label_map, recognizer_model='face_recognizer.yml'):
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.read(recognizer_model)
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    cam = cv2.VideoCapture(0)
+    while True:
+        ret, frame = cam.read()
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+        
+        for (x, y, w, h) in faces:
+            face = gray[y:y+h, x:x+w]
+            label, confidence = recognizer.predict(face)
+            if confidence < 100:
+                student_name = label_map[label]
+                student_id = student_name.split('_')[0]
+                student = Student.objects.get(student_id=student_id)
+                
+                if not Attendance.objects.filter(student=student, timestamp__date=datetime.now().date()).exists():
+                    Attendance.objects.create(student=student)
+                    print(f"Attendance marked for {student.full_name}")
+            else:
+                print("Unknown face detected.")
+        
+        cv2.imshow("Attendance System", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cam.release()
+    cv2.destroyAllWindows()
